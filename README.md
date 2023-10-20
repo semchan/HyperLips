@@ -20,7 +20,7 @@ You also can use environment.yml to install relevant environment by running
 conda env create -f environment.yml
 ```
 ## Getting the weights
-Download the pre-trained models from [BaiduYun](链接：https://pan.baidu.com/s/1wy986BiROq5bkXweHxSvVA?pwd=6666 )，and place them to the folder `checkpoints`
+Download the pre-trained models from [BaiduYun](https://pan.baidu.com/s/1wy986BiROq5bkXweHxSvVA?pwd=6666 )，and place them to the folder `checkpoints`
 
 ## Inference
 Inference HyperLipsBase with example videos by running:
