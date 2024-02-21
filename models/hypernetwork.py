@@ -13,8 +13,7 @@ class HyperNetwork(nn.Module):
     # Network layers
     self.lin1 = nn.Linear(in_dim, h_dim)
     self.lin2 = nn.Linear(h_dim, h_dim)
-    # self.lin3 = nn.Linear(h_dim, h_dim)
-    # self.lin4 = nn.Linear(h_dim, h_dim)
+
 
     # Activations
     self.relu = nn.LeakyReLU(inplace=True)
@@ -26,6 +25,5 @@ class HyperNetwork(nn.Module):
     """
     x = self.relu(self.lin1(x))
     x = self.relu(self.lin2(x))
-    # x = self.relu(self.lin3(x))
-    # x = self.relu(self.lin4(x))
+
     return x

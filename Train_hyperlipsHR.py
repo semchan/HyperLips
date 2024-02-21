@@ -118,6 +118,7 @@ class Dataset(object):
                 img = cv2.resize(img, (args.img_size, args.img_size))
                 img = cv2.GaussianBlur(img, (kenerl_size, kenerl_size), 0,0,cv2.BORDER_DEFAULT)
                 ret, img= cv2.threshold(img, 0, 255, cv2.THRESH_BINARY)
+                cv2.imwrite("test_skech.png",img)
             except Exception as e:
                 return None
 

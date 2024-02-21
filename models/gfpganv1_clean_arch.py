@@ -257,23 +257,6 @@ class GFPGANv1Clean(nn.Module):
             for _, param in self.stylegan_decoder.named_parameters():
                 param.requires_grad = False
 
-        # # for SFT modulations (scale and shift)
-        # self.condition_scale = nn.ModuleList()
-        # self.condition_shift = nn.ModuleList()
-        # for i in range(3, self.log_size + 1):
-        #     out_channels = channels[f'{2**i}']
-        #     if sft_half:
-        #         sft_out_channels = out_channels
-        #     else:
-        #         sft_out_channels = out_channels * 2
-        #     self.condition_scale.append(
-        #         nn.Sequential(
-        #             nn.Conv2d(out_channels, out_channels, 3, 1, 1), nn.LeakyReLU(0.2, True),
-        #             nn.Conv2d(out_channels, sft_out_channels, 3, 1, 1)))
-        #     self.condition_shift.append(
-        #         nn.Sequential(
-        #             nn.Conv2d(out_channels, out_channels, 3, 1, 1), nn.LeakyReLU(0.2, True),
-        #             nn.Conv2d(out_channels, sft_out_channels, 3, 1, 1)))
 
     def forward(self, x, return_latents=False, return_rgb=True, randomize_noise=True):
         """Forward function for GFPGANv1Clean.

@@ -77,8 +77,7 @@ class BatchConv2d(nn.Module):
     
     kernel = self.kernel.view(b_i * self.out_channels, self.in_channels, self.kernel_size, self.kernel_size)
     out = F.conv2d(out, weight=kernel, bias=None, stride=self.stride, dilation=self.dilation, groups=b_i,padding=self.padding)
-    
-    # out = F.conv2d(x, weight=kernel, bias=None, stride=self.stride, padding=self.padding)
+  
 
     out = out.view(b_j, b_i, self.out_channels, out.shape[-2], out.shape[-1])
     out = out.permute([1, 0, 2, 3, 4])

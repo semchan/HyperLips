@@ -249,38 +249,3 @@ class HyperConv(nn.Module):
 
         return out
     
-    
-    
-    
-
-if __name__ == '__main__':
-    # # variant = 'mobilenetv3'
-    #     # checkpoint = './checkpoints/rvm_mobilenetv3.pth'
-    # audio_sequences =  torch.randn(1,5,1,80,16).cuda()
-    # face_sequences = torch.randn(1,6,5, 128, 128).cuda()
-    
-    audio_sequences =  torch.randn(1,1,1,80,16).cuda()
-    # face_sequences = torch.randn(1,6,1, 128, 128).cuda()
-    face_sequences = torch.randn(1,6,1, 96, 96).cuda()
-    imags = torch.randn(3,3,256, 256).cuda()
-    
-    model = HyperConv(levels=[15],in_channels=3,out_channels=3,kernel_size=3,device="cuda").eval().cuda()
-    model = model.eval()
-    output = model(imags)
-    print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
-    
-    r1 = None
-    r2 = None
-    r3 = None
-    r4 = None
-
-    # print(model)
-    import time
-    test_time = 0
-    start_time = time.time()
-    for i in range(1000):
-        with torch.no_grad():
-            output = model(audio_sequences,face_sequences,r1,r2,r3,r4)#([4, 3, 512, 512]);([4, 1, 512, 512]);([4, 16, 256, 256]);;([4, 20, 128, 128]);([4, 40, 64, 64]);;([4, 64, 32, 32]);
-        torch.cuda.synchronize()
-    print('net  time',(time.time()-start_time)/1000)
-    print(output)

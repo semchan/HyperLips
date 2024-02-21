@@ -6,11 +6,13 @@ import os
 
 parser = argparse.ArgumentParser(description='Inference code to lip-sync videos in the wild using HyperLipsBase or HyperLipsHR models')
 parser.add_argument('--checkpoint_path_BASE', type=str,help='Name of saved HyperLipsBase checkpoint to load weights from', default="checkpoints/require_grad_checkpoint_step000169000.pth")
-parser.add_argument('--checkpoint_path_HR', type=str,help='Name of saved HyperLipsHR checkpoint to load weights from', default=None)
-parser.add_argument('--videos', type=str,
-                    help='Filepath of video/image that contains faces to use', default="datasets/MEAD")
+parser.add_argument('--checkpoint_path_HR', type=str,help='Name of saved HyperLipsHR checkpoint to load weights from', default=None)#"checkpoints/hyperlipshr_mead_128.pth"
+parser.add_argument('--face', type=str,
+                    help='Filepath of video/image that contains faces to use', default="test/video/M003-007.mp4")
+parser.add_argument('--audio', type=str,
+                    help='Filepath of video/audio file to use as raw audio source', default="test/audio/M003-028.mp4")
 parser.add_argument('--outfile', type=str, help='Video path to save result. See default for an e.g.',
-                    default='hyperlips_base_results')
+                    default='result/result.mp4')
 parser.add_argument('--pads', nargs='+', type=int, default=[0, 10, 0, 0],
                     help='Padding (top, bottom, left, right). Please adjust to include chin at least')
 parser.add_argument('--filter_window', default=None, type=int,
@@ -30,7 +32,7 @@ parser.add_argument('--gpu_id', type=float, help='gpu id (default: 0)',
 args = parser.parse_args()
 
 
-def inference_list():
+def inference_single():
     Hyperlips_executor = Hyperlips(checkpoint_path_BASE=args.checkpoint_path_BASE,
                                     checkpoint_path_HR=args.checkpoint_path_HR,
                                     segmentation_path=args.segmentation_path,
@@ -42,14 +44,11 @@ def inference_list():
                                     resize_factor = args.resize_factor,
                                     pad = args.pads)
     Hyperlips_executor._HyperlipsLoadModels()
-    filelist = os.listdir(args.videos)
-    for i in filelist:
-        face = args.videos+"/"+i
-        audio = args.videos+"/"+i
-        outputfile = args.outfile+"/"+i
-        Hyperlips_executor._HyperlipsInference(face,audio,outputfile)
+    Hyperlips_executor._HyperlipsInference(args.face,args.audio,args.outfile)
+
+
+
 
 
 if __name__ == '__main__':
-
-    inference_list()
+    inference_single()

@@ -1,6 +1,5 @@
 from torch import nn
-# from torchvision.models.mobilenetv3 import MobileNetV3, InvertedResidualConfig
-# from torchvision.models.utils import load_state_dict_from_url
+
 from torch.hub import load_state_dict_from_url
 from torchvision.transforms.functional import normalize
 import warnings
@@ -10,10 +9,6 @@ from typing import Any, Callable, List, Optional, Sequence
 import torch
 from torch import nn, Tensor
 
-# from .._internally_replaced_utils import load_state_dict_from_url
-# from ..ops.misc import ConvNormActivation, SqueezeExcitation as SElayer
-# from ..utils import _log_api_usage_once
-# from ._utils import _make_divisible
 import warnings
 from typing import Callable, List, Optional
 import torch

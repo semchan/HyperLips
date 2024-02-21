@@ -22,12 +22,6 @@ else:
     from .deep_guided_filter import DeepGuidedFilterRefiner
 
 
-# from .mobilenetv3 import MobileNetV3LargeEncoder
-# from .resnet import ResNet50Encoder
-# from .lraspp import LRASPP
-# from .decoder import RecurrentDecoder, Projection
-# from .fast_guided_filter import FastGuidedFilterRefiner
-# from .deep_guided_filter import DeepGuidedFilterRefiner
 
 class MattingNetwork(nn.Module):
     def __init__(self,
@@ -64,10 +58,8 @@ class MattingNetwork(nn.Module):
                 downsample_ratio: float = 1,
                 segmentation_pass: bool = False):
         
-        # src = torch.nn.functional.interpolate(src,(512, 512), mode='bilinear', align_corners=False)#[1, 3, 256, 256]
         if downsample_ratio != 1:
-            # src_sm = self._interpolate(src, scale_factor=downsample_ratio)#([1, 1, 3, 2160, 3840])->([1, 1, 3, 288, 512])
-            # src_sm = torch.nn.functional.interpolate(src,(512, 512), mode='bilinear', align_corners=False)#[1, 3, 256, 256]
+
             src_sm = self._interpolate(src, scale_factor=0.5)#([1, 1, 3, 2160, 3840])->([1, 1, 3, 288, 512])
         else:
             src_sm = src
@@ -100,18 +92,3 @@ class MattingNetwork(nn.Module):
         return x
 
 
-
-if __name__ == '__main__':
-    variant = 'mobilenetv3'
-    input_data =  torch.randn(4,3,512,512).cuda()
-    model = MattingNetwork(variant).eval().cuda()
-    
-    r1 = None
-    r2 = None
-    r3 = None
-    r4 = None
-
-    # print(model)
-    
-    output = model(input_data,r1,r2,r3,r4,downsample_ratio=0.5)#([4, 3, 512, 512]);([4, 1, 512, 512]);([4, 16, 256, 256]);;([4, 20, 128, 128]);([4, 40, 64, 64]);;([4, 64, 32, 32]);
-    print(output)

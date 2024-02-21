@@ -10,6 +10,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 import mediapipe as mp
+
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_face_mesh = mp.solutions.face_mesh
@@ -61,41 +62,70 @@ FACEMESH_NOSE = frozenset([(168, 6), (6, 197), (197, 195), (195, 5), (5, 4),
 ROI =  frozenset().union(*[FACEMESH_LIPS, FACEMESH_LEFT_EYE, FACEMESH_LEFT_EYEBROW, 
 FACEMESH_RIGHT_EYE,FACEMESH_RIGHT_EYEBROW,FACEMESH_FACE_OVAL,FACEMESH_NOSE])
 
-def get_smoothened_landmarks(all_landmarks, image,windows_T):
 
+def preprocess_sketch(skecth,hr_size):
+    if hr_size == 128:
+        kenerl_size = 5
+    elif hr_size == 256:
+        kenerl_size = 7
+    elif hr_size == 512:
+        kenerl_size = 11
+    else:
+        print("Please input rigtht img_size!")
+    skecth = cv2.resize(skecth, (hr_size, hr_size))
+
+    return skecth
+    
+
+
+def get_smoothened_landmarks(all_landmarks,windows_T,hr_size,base_size,):
     sketch = [] 
-    for i in range(len(all_landmarks)):  # frame i
-        if i>windows_T-1 and i+windows_T<len(all_landmarks):
-            window = all_landmarks[i-windows_T: i + windows_T]
-            for j in range(len(all_landmarks[i].landmark)):  # landmark j
-                all_landmarks[i].landmark[j].x = np.mean([frame_landmarks.landmark[j].x for frame_landmarks in window])
-                all_landmarks[i].landmark[j].y = np.mean([frame_landmarks.landmark[j].y for frame_landmarks in window])
-                all_landmarks[i].landmark[j].z = np.mean([frame_landmarks.landmark[j].z for frame_landmarks in window])
-
-            canvas = np.zeros_like(image.copy())
-            mp_drawing.draw_landmarks(
-                    image=canvas,   
-                    landmark_list=all_landmarks[i],
-                    connections= ROI,
-                    landmark_drawing_spec=None,
-                    connection_drawing_spec=mp_drawing.DrawingSpec(thickness=6, circle_radius=1,color=(255,255,255)))
-            sketch.append(canvas)
-
-        else:
+    if windows_T==None:
+        for i in range(len(all_landmarks)):
             window = all_landmarks[i]
-            canvas = np.zeros_like(image.copy())
+            canvas= np.zeros((base_size,base_size,3),dtype = 'uint8')
             mp_drawing.draw_landmarks(
                 image=canvas,   
                 landmark_list=window,
                 connections= ROI,
                 landmark_drawing_spec=None,
                 connection_drawing_spec=mp_drawing.DrawingSpec(thickness=6, circle_radius=1,color=(255,255,255)))
+            canvas = preprocess_sketch(canvas,hr_size)
             sketch.append(canvas)
+    else:
+        for i in range(len(all_landmarks)):  # frame i
+            if i>windows_T-1 and i+windows_T<len(all_landmarks):
+                window = all_landmarks[i-windows_T: i + windows_T]
+                for j in range(len(all_landmarks[i].landmark)):  # landmark j
+                    all_landmarks[i].landmark[j].x = np.mean([frame_landmarks.landmark[j].x for frame_landmarks in window])
+                    all_landmarks[i].landmark[j].y = np.mean([frame_landmarks.landmark[j].y for frame_landmarks in window])
+                    all_landmarks[i].landmark[j].z = np.mean([frame_landmarks.landmark[j].z for frame_landmarks in window])
+
+                canvas= np.zeros((base_size,base_size,3),dtype = 'uint8')
+                mp_drawing.draw_landmarks(
+                        image=canvas,   
+                        landmark_list=all_landmarks[i],
+                        connections= ROI,
+                        landmark_drawing_spec=None,
+                        connection_drawing_spec=mp_drawing.DrawingSpec(thickness=6, circle_radius=1,color=(255,255,255)))
+                canvas = preprocess_sketch(canvas,hr_size)
+                sketch.append(canvas)
+
+            else:
+                window = all_landmarks[i]
+                canvas= np.zeros((base_size,base_size,3),dtype = 'uint8')
+                mp_drawing.draw_landmarks(
+                    image=canvas,   
+                    landmark_list=window,
+                    connections= ROI,
+                    landmark_drawing_spec=None,
+                    connection_drawing_spec=mp_drawing.DrawingSpec(thickness=6, circle_radius=1,color=(255,255,255)))
+                canvas = preprocess_sketch(canvas,hr_size)
+                sketch.append(canvas)
     return sketch
 
 
 if __name__ == '__main__':
-    # from src.video_portrait_matting_model import VideoPortraitMattingModel
     from mobilenetv3 import MobileNetV3LargeEncoder
     from resnet import ResNet50Encoder
     from lraspp import LRASPP
@@ -267,7 +297,6 @@ class HyperFCNet(nn.Module):
         :param  style_f_m0,style_f_m1,style_f_m2,style_f_m3: Input to hypernetwork.
         :return: nn.Module; Predicted fully connected neural network.
         '''
-        # f1 torch.Size([8, 16, 128, 128]) torch.Size([8, 24, 64, 64]) torch.Size([8, 40, 32, 32]) torch.Size([8, 128, 16, 16])
         fa0,fa1,fa2,fa3 = self.audio_encoder(x)#([8, 1, 80, 16])->([8, 16, 40, 8]);([8, 24, 20, 4]);([8, 40, 10, 2]);([8, 960, 5, 1])
         fa3 = self.aspp_a(fa3)#([8, 128, 5, 1])
 
@@ -341,7 +370,6 @@ class HyperLipsBase(nn.Module):
     def __init__(self):
         super().__init__()
         self.up_conv = nn.Sequential(
-                # Conv2dTranspose(16*4, 64, kernel_size=3, stride=2, padding=1, output_padding=1),
                 Conv2d(64, 64, kernel_size=3, stride=1, padding=1, residual=True),
                 Conv2d(64, 16*4, kernel_size=3, stride=1, padding=1, residual=True), )  # 96,96
 
@@ -454,11 +482,6 @@ class HRDecoder_disc_qual(nn.Module):
             nn.Sequential(nonorm_Conv2d(128, 128, kernel_size=3, stride=2, padding=1),       # 6,6
             nonorm_Conv2d(128, 128, kernel_size=3, stride=1, padding=1)),
 
-            # nn.Sequential(nonorm_Conv2d(128, 128, kernel_size=3, stride=2, padding=1),     # 3,3
-            # nonorm_Conv2d(128, 128, kernel_size=3, stride=1, padding=1),),
-            
-            # nn.Sequential(nonorm_Conv2d(512, 512, kernel_size=3, stride=1, padding=0),     # 1, 1
-            # nonorm_Conv2d(512, 512, kernel_size=1, stride=1, padding=0)),
             nn.AdaptiveAvgPool2d(1),
             ])
 
@@ -473,16 +496,26 @@ class HRDecoder_disc_qual(nn.Module):
 
 
 
-class HyperLipsHR(nn.Module):
+
+
+class HyperLips_inference(nn.Module):
     def __init__(self,window_T,rescaling=1,base_model_checkpoint="",HRDecoder_model_checkpoint = ""):
         super().__init__()
         self.base_size = 128
         self.rescaling = rescaling
-        if not (window_T == None):
-            self.window_T = window_T
+        if 1==self.rescaling :
+            self.hr_size = 128
+        elif 2==self.rescaling:
+            self.hr_size = 256
+        elif 4==self.rescaling:
+             self.hr_size = 512
         else:
-            self.window_T = 9999999
+            raise ValueError(
+                'rescaling must be 1,2,4')
+                
+        self.window_T = window_T
         self.base_model = HyperLipsBase()
+        self.HR_flag = False
         checkpoint = torch.load(base_model_checkpoint,map_location=lambda storage, loc: storage)
         s = checkpoint["state_dict"]
         self.base_model.load_state_dict(s)
@@ -490,61 +523,58 @@ class HyperLipsHR(nn.Module):
         for param in self.base_model.parameters():
             param.requires_grad = False
 
-
-        self.HRDecoder = HRDecoder(self.rescaling)
-        checkpoint = torch.load(HRDecoder_model_checkpoint,map_location=lambda storage, loc: storage)
-        s = checkpoint["state_dict"]
-        self.HRDecoder.load_state_dict(s)
-        # self.base_model.load_state_dict(torch.load(base_model_checkpoint))
-        self.HRDecoder.eval()
-        for param in self.HRDecoder.parameters():
-            param.requires_grad = False
+        if HRDecoder_model_checkpoint is not None:
+            self.HR_flag = True
+            self.HRDecoder = HRDecoder(self.rescaling)
+            checkpoint = torch.load(HRDecoder_model_checkpoint,map_location=lambda storage, loc: storage)
+            s = checkpoint["state_dict"]
+            self.HRDecoder.load_state_dict(s)
+            self.HRDecoder.eval()
+            for param in self.HRDecoder.parameters():
+                param.requires_grad = False
 
         
-    
     def forward(self,
                 audio_sequences: Tensor,
                 face_sequences: Tensor):
         B = audio_sequences.size(0)
-
+        device = face_sequences.device
         input_dim_size = len(face_sequences.size())
         if input_dim_size > 4:
             audio_sequences = torch.cat([audio_sequences[:, i] for i in range(audio_sequences.size(1))], dim=0)#([2, 5, 1, 80, 16])->([10, 1, 80, 16])
             face_sequences = torch.cat([face_sequences[:, :, i] for i in range(face_sequences.size(2))], dim=0)#([2, 6, 5, 512, 512])->([10, 6, 512, 512])
-               
         src = face_sequences
         if self.rescaling != 1:
-            # src_sm = self._interpolate(src, scale_factor=self.rescaling)#([1, 1, 3, 2160, 3840])->([1, 1, 3, 288, 512])
             src_sm = torch.nn.functional.interpolate(src,(self.base_size, self.base_size), mode='bilinear', align_corners=False)
         else:
             src_sm = src
         output = self.base_model(audio_sequences,src_sm)
-        # for HRDecoder
-        with mp_face_mesh.FaceMesh(
-            max_num_faces=1,
-            refine_landmarks=True,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5) as face_mesh:
-            img = []
-            all_landmarks = []
-            for p in output:
-                image = p.cpu().numpy().transpose(1,2,0) * 255.
-                image = image.astype(np.uint8)
-                results = face_mesh.process(image)
-                if results.multi_face_landmarks==None:
-                    print("***********")
-                face_landmarks =  results.multi_face_landmarks[0]
-                all_landmarks.append(face_landmarks)
-                img.append(image)
-            sketch = get_smoothened_landmarks(all_landmarks,img[0],windows_T=self.window_T)
-            img_batch = np.concatenate((img, sketch), axis=3) / 255.
-            img_batch = torch.FloatTensor(np.transpose(img_batch, (0, 3, 1, 2))).cuda()
+        if self.HR_flag:
+            # for HRDecoder
+            with mp_face_mesh.FaceMesh(
+                max_num_faces=1,
+                refine_landmarks=True,
+                min_detection_confidence=0.5,
+                min_tracking_confidence=0.5) as face_mesh:
+                img = []
+                all_landmarks = []
+                
+                for p in output:
+                    image = p.cpu().numpy().transpose(1,2,0) * 255.
+                    image = image.astype(np.uint8)
+                    image = cv2.resize(image,(self.hr_size,self.hr_size))
+                    results = face_mesh.process(image)
+                    if results.multi_face_landmarks==None:
+                        print("Landmark detecting error!")
+                    face_landmarks =  results.multi_face_landmarks[0]
+                    all_landmarks.append(face_landmarks)
+                    img.append(image)
+                sketch = get_smoothened_landmarks(all_landmarks,self.window_T,self.hr_size,self.base_size)
+                img_batch = np.concatenate((img, sketch), axis=3) / 255.
+                img_batch = torch.FloatTensor(np.transpose(img_batch, (0, 3, 1, 2))).to(device)
 
-        output = self.HRDecoder(img_batch)
+            output = self.HRDecoder(img_batch)
         return output
-
-
-  
 
 
 
@@ -579,7 +609,7 @@ class HyperCtrolDiscriminator(nn.Module):
         self.label_noise = .0
 
     def get_lower_half(self, face_sequences):
-        return face_sequences[:, :, face_sequences.size(2)//2:]#取下半部分
+        return face_sequences[:, :, face_sequences.size(2)//2:]
 
     def to_2d(self, face_sequences):
         B = face_sequences.size(0)
