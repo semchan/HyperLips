@@ -23,15 +23,11 @@ conda env create -f environment.yml
 Download the pre-trained models from [BaiduYun](https://pan.baidu.com/s/1wy986BiROq5bkXweHxSvVA?pwd=6666 )，and place them to the folder `checkpoints`
 
 ## Inference
-Inference HyperLipsBase with example videos by running:
+We trained a pretrained model on the dataset we collected ourselves.You can quickly try it by running:
 ```
-python inference.py --checkpoint_path_BASE=checkpoints/require_grad_checkpoint_step000169000.pth 
+python inference.py --checkpoint_path_BASE=checkpoints/hyperlipsbase_multi.pth.pth 
 ```
-Inference HyperLipsHR with example videos by running:
-```
-python inference.py --checkpoint_path_BASE=checkpoints/require_grad_checkpoint_step000169000.pth --checkpoint_path_HR=checkpoints/hyperlipshr_mead_128.pth --img_size=128
-```
-The result is saved (by default) in `results/result_voice.mp4`. To inference on other videos, please specify the `--face` and `--audio` option and see more details in code.
+The result is saved (by default) in `results/result_video.mp4`. To inference on other videos, please specify the `--face` and `--audio` option and see more details in code.
 
 ## Train
 ### 1.Download MEAD dateset

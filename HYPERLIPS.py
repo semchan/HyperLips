@@ -57,8 +57,11 @@ def face_detect(images, detector,pad):
     return results
 
 def datagen(mels, detector,frames,img_size,hyper_batch_size,pads):
-    img_batch, mel_batch, frame_batch, coords_batch = [], [], [], []
+    # img_batch, mel_batch, frame_batch, coords_batch = [], [], [], []
+    img_batch, mel_batch, frame_batch, coords_batch,ref_batch = [], [], [], [],[]
     face_det_results = face_detect(frames,detector,pads)
+    ref, _ = face_det_results[0].copy()
+    ref =  cv2.resize(ref, (img_size, img_size))
     for i, m in enumerate(mels):
         frame_to_save = frames[i].copy()
         face, coords = face_det_results[i].copy()
@@ -66,27 +69,30 @@ def datagen(mels, detector,frames,img_size,hyper_batch_size,pads):
         img_batch.append(face)
         mel_batch.append(m)
         frame_batch.append(frame_to_save)
+        ref_batch.append(ref)
         coords_batch.append(coords)
 
         if len(img_batch) >= hyper_batch_size:
-            img_batch, mel_batch = np.asarray(img_batch), np.asarray(mel_batch)
-
+            # img_batch, mel_batch = np.asarray(img_batch), np.asarray(mel_batch)
+            img_batch, mel_batch,ref_batch = np.asarray(img_batch), np.asarray(mel_batch), np.asarray(ref_batch)
             img_masked = img_batch.copy()
             img_masked[:, img_size // 2:] = 0
 
-            img_batch = np.concatenate((img_masked, img_batch), axis=3) / 255.
+            img_batch = np.concatenate((img_masked, ref_batch), axis=3) / 255.
             mel_batch = np.reshape(mel_batch, [len(mel_batch), mel_batch.shape[1], mel_batch.shape[2], 1])
             
             yield img_batch, mel_batch, frame_batch, coords_batch
-            img_batch, mel_batch, frame_batch, coords_batch = [], [], [], []
+            # img_batch, mel_batch, frame_batch, coords_batch = [], [], [], []
+            img_batch, mel_batch, frame_batch, coords_batch,ref_batch = [], [], [], [],[]
 
     if len(img_batch) > 0:
-        img_batch, mel_batch = np.asarray(img_batch), np.asarray(mel_batch)
+        # img_batch, mel_batch = np.asarray(img_batch), np.asarray(mel_batch)
+        img_batch, mel_batch,ref_batch = np.asarray(img_batch), np.asarray(mel_batch), np.asarray(ref_batch)
 
         img_masked = img_batch.copy()
         img_masked[:, img_size // 2:] = 0
 
-        img_batch = np.concatenate((img_masked, img_batch), axis=3) / 255.
+        img_batch = np.concatenate((img_masked, ref_batch), axis=3) / 255.
         mel_batch = np.reshape(mel_batch, [len(mel_batch), mel_batch.shape[1], mel_batch.shape[2], 1])
 
         yield img_batch, mel_batch, frame_batch, coords_batch
@@ -235,14 +241,19 @@ class Hyperlips():
                 kernel = np.ones((5,5),np.uint8)  
                 mask_temp = cv2.erode(mask_temp,kernel,iterations = 1)
                 mask_temp = cv2.GaussianBlur(mask_temp, (75, 75), 0,0,cv2.BORDER_DEFAULT) 
+                mask_temp = mask_temp.astype(np.float)
+                # cv2.imwrite("mask_temp.jpg", mask_temp)
                 f[y1:y2, x1:x2] = p
+                # cv2.imwrite("f00.jpg", f)
                 f = f_background*(1-mask_temp/255.0)+f*(mask_temp/255.0)
+                # cv2.imwrite("f0.jpg", f)
                 if self.face_enhancement_path is not None:
                     Code_img = GFPGANInfer(f, self.restorer,aligned=False) 
-                    f=Code_img
+                    f=Code_img                
+                # cv2.imwrite("f1.jpg", f)
+                # f = f_background*(1-mask_temp/255.0)+f*(mask_temp/255.0)
                 f = f.astype(np.uint8)
                 out.write(f)
-                i = i+1
 
         out.release()
         command = 'ffmpeg -y -i {} -i {} -strict -2 -q:v 1 {}'.format(
