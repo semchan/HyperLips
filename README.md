@@ -23,9 +23,9 @@ conda env create -f environment.yml
 Download the pre-trained models from [BaiduYun](https://pan.baidu.com/s/1wy986BiROq5bkXweHxSvVA?pwd=6666 )，and place them to the folder `checkpoints`
 
 ## Inference
-We trained a pretrained model on the dataset we collected ourselves.You can quickly try it by running:
+We trained a pretrained model on LRS2 dataset.You can quickly try it by running:
 ```
-python inference.py --checkpoint_path_BASE=checkpoints/hyperlipsbase_multi.pth.pth 
+python inference.py --checkpoint_path_BASE=checkpoints/hyperlipsbase_lrs2.pth 
 ```
 The result is saved (by default) in `results/result_video.mp4`. To inference on other videos, please specify the `--face` and `--audio` option and see more details in code.
 
